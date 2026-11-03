@@ -158,6 +158,8 @@ with tab2:
     )
 
 # --------------------------------------------------
+
+# --------------------------------------------------
 # 3. MODELO ECONOMÉTRICO
 # --------------------------------------------------
 
@@ -171,7 +173,7 @@ with tab3:
 
     Variable independiente: ingresos.
 
-    Ecuación: Costos = β₀ + β₁(Ingresos) + ε
+    Método de estimación: mínimos cuadrados ordinarios (MCO).
     """)
 
     modelo_df = df.dropna(
@@ -179,6 +181,7 @@ with tab3:
     ).copy()
 
     if len(modelo_df) >= 3:
+
         X = sm.add_constant(modelo_df["ingresos"])
         y = modelo_df["costos"]
 
@@ -199,25 +202,58 @@ with tab3:
         )
 
         col3.metric(
-            "Coeficiente β₁",
-            f"{modelo.params.iloc[1]:.4f}"
+            "R² ajustado",
+            f"{modelo.rsquared_adj:.4f}"
         )
 
-        st.write("**Coeficientes estimados**")
+        st.divider()
+
+        st.subheader("Coeficientes estimados")
+
+        tabla_coef = pd.DataFrame({
+            "Parámetro": modelo.params.index,
+            "Coeficiente": modelo.params.values,
+            "Error estándar": modelo.bse.values,
+            "Estadístico t": modelo.tvalues.values,
+            "Valor p": modelo.pvalues.values,
+            "IC inferior 95%": modelo.conf_int()[0].values,
+            "IC superior 95%": modelo.conf_int()[1].values
+        })
+
         st.dataframe(
-            pd.DataFrame({
-                "Parámetro": ["Intercepto (β₀)", "Ingresos (β₁)"],
-                "Estimación": modelo.params.values
+            tabla_coef.style.format({
+                "Coeficiente": "{:,.4f}",
+                "Error estándar": "{:,.4f}",
+                "Estadístico t": "{:,.4f}",
+                "Valor p": "{:.4f}",
+                "IC inferior 95%": "{:,.4f}",
+                "IC superior 95%": "{:,.4f}"
             }),
+            use_container_width=True,
             hide_index=True
         )
 
+        st.subheader("Ecuación estimada")
+
+        beta0 = modelo.params.iloc[0]
+        beta1 = modelo.params.iloc[1]
+
+        st.latex(
+            rf"\widehat{{Costos}} = {beta0:,.2f} "
+            rf"+ {beta1:.4f}(Ingresos)"
+        )
+
+        st.divider()
+
+        st.subheader("Valores reales frente a estimados")
+
         predicciones = modelo.predict(X)
+        residuos = modelo.resid
 
         comparacion = pd.DataFrame({
             "Año": modelo_df["anio"],
-            "Costos reales": y,
-            "Costos estimados": predicciones
+            "Costos reales": y.values,
+            "Costos estimados": predicciones.values
         })
 
         fig = px.scatter(
@@ -228,19 +264,73 @@ with tab3:
             title="Costos reales frente a costos estimados"
         )
 
-        st.plotly_chart(fig, use_container_width=True)
-
-        with st.expander("Ver resultados estadísticos completos"):
-            st.text(modelo.summary().as_text())
-
-        st.warning(
-            "La estimación es exploratoria: se basa en una muestra "
-            "muy pequeña. El R² no demuestra causalidad ni garantiza "
-            "la precisión de las proyecciones."
+        st.plotly_chart(
+            fig,
+            use_container_width=True
         )
 
+        st.subheader("Análisis de residuos")
+
+        residuos_df = pd.DataFrame({
+            "Año": modelo_df["anio"],
+            "Residuo": residuos.values,
+            "Valor estimado": predicciones.values
+        })
+
+        fig_residuos = px.scatter(
+            residuos_df,
+            x="Valor estimado",
+            y="Residuo",
+            text="Año",
+            title="Distribución de los residuos"
+        )
+
+        fig_residuos.add_hline(y=0)
+
+        st.plotly_chart(
+            fig_residuos,
+            use_container_width=True
+        )
+
+        st.dataframe(
+            residuos_df.style.format({
+                "Residuo": "{:,.4f}",
+                "Valor estimado": "{:,.4f}"
+            }),
+            use_container_width=True,
+            hide_index=True
+        )
+
+        st.subheader("Indicadores de diagnóstico")
+
+        col4, col5 = st.columns(2)
+
+        col4.metric(
+            "Error estándar de la regresión",
+            f"{modelo.mse_resid ** 0.5:,.2f}"
+        )
+
+        col5.metric(
+            "Durbin-Watson",
+            f"{sm.stats.stattools.durbin_watson(residuos):.4f}"
+        )
+
+        with st.expander("Ver resumen estadístico completo"):
+            st.text(modelo.summary().as_text())
+
+        st.warning("""
+        **Limitación metodológica:** la estimación utiliza cinco
+        observaciones anuales. Por tanto, los valores p, los intervalos
+        de confianza y las pruebas de diagnóstico deben interpretarse
+        con mucha cautela. No permiten establecer conclusiones
+        estadísticas sólidas con una muestra tan pequeña.
+        """)
+
     else:
-        st.error("No hay suficientes observaciones para estimar el modelo.")
+        st.error(
+            "No existen suficientes observaciones para estimar el modelo."
+        )
+
 
 # --------------------------------------------------
 # 4. SIMULADOR DE ESCENARIOS
