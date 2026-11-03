@@ -639,13 +639,17 @@ with tab4:
         # Tabla de resultados
         st.subheader("Proyección financiera detallada")
 
+                formatos = {
+            columna: "{:,.2f}"
+            for columna in proyeccion.select_dtypes(
+                include="number"
+            ).columns
+        }
+
+        formatos["Año proyectado"] = "{:.0f}"
+
         st.dataframe(
-            proyeccion.style.format({"Año proyectado": "{:.0f}",
-                columna: "{:,.2f}"
-                for columna in proyeccion.select_dtypes(
-                    include="number"
-                ).columns
-            }),
+            proyeccion.style.format(formatos),
             use_container_width=True,
             hide_index=True
         )
