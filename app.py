@@ -286,7 +286,7 @@ with tab3:
             "R²",
             f"{modelo.rsquared:.4f}"
         )
-               col3.metric(
+        col3.metric(
             "Coeficiente β₁",
             f"{modelo.params.iloc[1]:.4f}"
         )
