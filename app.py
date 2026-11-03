@@ -286,11 +286,11 @@ with tab3:
             "R²",
             f"{modelo.rsquared:.4f}"
         )
-        
-        col3.metric(
-            "Variación estimada de efectivo",
-            f"$ {ultimo['Variación estimada de efectivo']:,.2f} millones"
+               col3.metric(
+            "Coeficiente β₁",
+            f"{modelo.params.iloc[1]:.4f}"
         )
+
         st.divider()
 
         st.subheader("Coeficientes estimados")
