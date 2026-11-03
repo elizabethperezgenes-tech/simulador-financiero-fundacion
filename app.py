@@ -230,6 +230,50 @@ with tab1:
             "Conviene hacer seguimiento a la recuperación de cartera."
         )
 
+    # Conclusión general del diagnóstico financiero
+    st.subheader("Conclusión general del diagnóstico financiero")
+
+    efectivo_2025 = ultimo_anio["efectivo"]
+    activos_corrientes_2025 = ultimo_anio["activos_corrientes"]
+    cartera_2025 = ultimo_anio["cuentas_por_cobrar"]
+
+    participacion_efectivo_2025 = (
+        efectivo_2025 / activos_corrientes_2025
+    ) * 100
+
+    participacion_cartera_2025 = (
+        cartera_2025 / activos_corrientes_2025
+    ) * 100
+
+    st.write(
+        "El análisis histórico de la Fundación Amigos de la Salud "
+        "durante el periodo 2020-2025 evidencia un crecimiento "
+        "de los ingresos y de los costos, con una evolución "
+        "favorable de los ingresos frente a los costos."
+    )
+
+    st.write(
+        f"Sin embargo, se identifica una reducción del efectivo "
+        f"del {abs(variacion_efectivo):.2f} % entre 2020 y 2025. "
+        f"Para 2025, el efectivo representa apenas el "
+        f"{participacion_efectivo_2025:.2f} % de los activos corrientes."
+    )
+
+    st.write(
+        f"Asimismo, las cuentas por cobrar representan el "
+        f"{participacion_cartera_2025:.2f} % de los activos corrientes "
+        f"en 2025, lo que evidencia una elevada concentración "
+        f"de los recursos en cartera."
+    )
+
+    st.warning(
+        "En conclusión, el principal aspecto que requiere atención "
+        "es la disponibilidad inmediata de efectivo y la gestión "
+        "de recuperación de cartera. Se recomienda fortalecer "
+        "el seguimiento de los recaudos, la planeación de tesorería "
+        "y el control del capital de trabajo."
+    )
+
 # --------------------------------------------------
 # --------------------------------------------------
 # INDICADORES FINANCIEROS
