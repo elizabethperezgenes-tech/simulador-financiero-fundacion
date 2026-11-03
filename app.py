@@ -544,7 +544,7 @@ with tab4:
         # Simulación
         resultados = []
 
-        efectivo_anterior = efectivo_base
+
         cartera_anterior = cartera_base
         inventario_anterior = inventario_base
 
@@ -581,8 +581,7 @@ with tab4:
             inventario = (
                 ingreso * proporcion_inventario
             )
-
-            # Aproximación del efectivo proyectado
+                # Variación simplificada estimada del efectivo
             variacion_cartera = (
                 cartera_anterior - cartera
             )
@@ -591,9 +590,8 @@ with tab4:
                 inventario_anterior - inventario
             )
 
-            efectivo = (
-                efectivo_anterior
-                + excedente_neto
+            variacion_efectivo = (
+                excedente_neto
                 + variacion_cartera
                 + variacion_inventario
             )
@@ -607,10 +605,10 @@ with tab4:
                 "Excedente neto": excedente_neto,
                 "Cuentas por cobrar": cartera,
                 "Inventarios": inventario,
-                "Efectivo estimado": efectivo
+                "Variación estimada de efectivo": variacion_efectivo
             })
 
-            efectivo_anterior = efectivo
+            
             cartera_anterior = cartera
             inventario_anterior = inventario
 
@@ -633,10 +631,10 @@ with tab4:
             f"$ {ultimo['Excedente neto']:,.2f} millones"
         )
 
-        col3.metric(
-            "Efectivo estimado",
-            f"$ {ultimo['Efectivo estimado']:,.2f} millones"
-        )
+       col3.metric(
+    "Variación estimada de efectivo",
+    f"$ {ultimo['Variación estimada de efectivo']:,.2f} millones"
+)
 
         st.divider()
 
@@ -674,26 +672,24 @@ with tab4:
             use_container_width=True
         )
 
-        # Gráfico de liquidez y cartera
-        st.subheader("Evolución del efectivo y las cuentas por cobrar")
+        # Gráfico de variación del efectivo y cartera
+        st.subheader("Evolución de la variación del efectivo y las cuentas por cobrar")
 
         grafico_liquidez = px.line(
             proyeccion,
             x="Año proyectado",
             y=[
-                "Efectivo estimado",
+                "Variación estimada de efectivo",
                 "Cuentas por cobrar"
             ],
             markers=True,
-            title="Proyección de efectivo y cartera"
+            title="Variación estimada de efectivo y evolución de cartera"
         )
 
         st.plotly_chart(
             grafico_liquidez,
             use_container_width=True
         )
-
-        # Descarga
         st.download_button(
             "Descargar proyección financiera",
             proyeccion.to_csv(
@@ -717,12 +713,12 @@ with tab4:
         )
 
         st.info(
-            "El efectivo proyectado es una aproximación que "
-            "incorpora el excedente estimado y las variaciones "
-            "de cartera e inventarios. No equivale a un estado "
-            "de flujo de efectivo proyectado ni incorpora todas "
-            "las entradas y salidas de caja."
-        )
+    "La variación estimada de efectivo es una aproximación "
+    "simplificada que considera el excedente neto y los cambios "
+    "en cuentas por cobrar e inventarios. No representa un saldo "
+    "de caja ni un estado de flujo de efectivo proyectado, "
+    "pues no incorpora todas las entradas y salidas de dinero."
+)
 
         st.warning(
             "Las proyecciones son exploratorias. El modelo "
