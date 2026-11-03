@@ -81,7 +81,8 @@ with tab1:
     )
 
 # --------------------------------------------------
-# 2. INDICADORES FINANCIEROS
+# --------------------------------------------------
+# INDICADORES FINANCIEROS
 # --------------------------------------------------
 
 with tab2:
@@ -89,9 +90,16 @@ with tab2:
 
     datos = df.dropna(subset=[
         "activos_totales",
-        "pasivos_totales"
+        "pasivos_totales",
+        "activos_corrientes",
+        "efectivo",
+        "ingresos",
+        "excedente_neto"
     ]).copy()
 
+    datos["anio"] = pd.to_numeric(datos["anio"], errors="coerce")
+
+    # 1. Indicadores de endeudamiento y rentabilidad
     datos["endeudamiento"] = (
         datos["pasivos_totales"] /
         datos["activos_totales"] * 100
@@ -112,49 +120,128 @@ with tab2:
         datos["ingresos"] * 100
     )
 
-    st.subheader("Evolución de indicadores")
+    # 2. Indicadores de liquidez
+    # Se excluye 2020 porque no tenemos identificado
+    # el pasivo corriente de ese año.
 
-    indicadores = st.selectbox(
-        "Selecciona el indicador",
-        [
-            "endeudamiento",
-            "participacion_cartera",
-            "participacion_efectivo",
-            "margen_neto"
-        ],
-        format_func=lambda x: {
-            "endeudamiento": "Endeudamiento (%)",
-            "participacion_cartera": "Cartera sobre activos corrientes (%)",
-            "participacion_efectivo": "Efectivo sobre activos corrientes (%)",
-            "margen_neto": "Margen neto (%)"
-        }[x]
+    datos["pasivos_base_liquidez"] = float("nan")
+
+    mascara_liquidez = datos["anio"] >= 2022
+
+    datos.loc[mascara_liquidez, "pasivos_base_liquidez"] = (
+        datos.loc[mascara_liquidez, "pasivos_totales"]
     )
 
+    datos["razon_corriente"] = (
+        datos["activos_corrientes"] /
+        datos["pasivos_base_liquidez"]
+    )
+
+    datos["prueba_acida"] = (
+        (datos["activos_corrientes"] - datos["inventarios"]) /
+        datos["pasivos_base_liquidez"]
+    )
+
+    datos["razon_efectivo"] = (
+        datos["efectivo"] /
+        datos["pasivos_base_liquidez"]
+    )
+
+    datos["capital_trabajo"] = (
+        datos["activos_corrientes"] -
+        datos["pasivos_base_liquidez"]
+    )
+
+    # 3. Selector de indicadores
+    st.subheader("Evolución de indicadores")
+
+    opciones = {
+        "endeudamiento": "Endeudamiento (%)",
+        "participacion_cartera": "Cartera sobre activos corrientes (%)",
+        "participacion_efectivo": "Efectivo sobre activos corrientes (%)",
+        "margen_neto": "Margen neto (%)",
+        "razon_corriente": "Razón corriente (veces)",
+        "prueba_acida": "Prueba ácida (veces)",
+        "razon_efectivo": "Razón de efectivo (veces)",
+        "capital_trabajo": "Capital de trabajo (millones COP)"
+    }
+
+    indicador = st.selectbox(
+        "Selecciona el indicador",
+        list(opciones.keys()),
+        format_func=lambda x: opciones[x]
+    )
+
+    # 4. Gráfico
     grafico = px.line(
         datos,
         x="anio",
-        y=indicadores,
+        y=indicador,
         markers=True,
-        title="Comportamiento del indicador seleccionado"
+        title=opciones[indicador]
+    )
+
+    grafico.update_layout(
+        xaxis_title="Año",
+        yaxis_title=opciones[indicador]
     )
 
     st.plotly_chart(grafico, use_container_width=True)
 
+    # 5. Tabla de indicadores
+    st.subheader("Tabla histórica de indicadores")
+
+    columnas = [
+        "anio",
+        "endeudamiento",
+        "participacion_cartera",
+        "participacion_efectivo",
+        "margen_neto",
+        "razon_corriente",
+        "prueba_acida",
+        "razon_efectivo",
+        "capital_trabajo"
+    ]
+
+    tabla = datos[columnas].copy()
+
+    tabla.columns = [
+        "Año",
+        "Endeudamiento (%)",
+        "Cartera / Activo corriente (%)",
+        "Efectivo / Activo corriente (%)",
+        "Margen neto (%)",
+        "Razón corriente",
+        "Prueba ácida",
+        "Razón de efectivo",
+        "Capital de trabajo (millones)"
+    ]
+
     st.dataframe(
-        datos[[
-            "anio",
-            "endeudamiento",
-            "participacion_cartera",
-            "participacion_efectivo",
-            "margen_neto"
-        ]].style.format("{:.2f}"),
+        tabla.style.format({
+            "Endeudamiento (%)": "{:.2f}",
+            "Cartera / Activo corriente (%)": "{:.2f}",
+            "Efectivo / Activo corriente (%)": "{:.2f}",
+            "Margen neto (%)": "{:.2f}",
+            "Razón corriente": "{:.2f}",
+            "Prueba ácida": "{:.2f}",
+            "Razón de efectivo": "{:.4f}",
+            "Capital de trabajo (millones)": "{:,.2f}"
+        }, na_rep="No disponible"),
         use_container_width=True
     )
 
-    st.info(
-        "La razón corriente no se calcula porque no tenemos "
-        "identificados los pasivos corrientes. La participación "
-        "del efectivo y de la cartera se expresa sobre los activos corrientes."
+    # 6. Aclaración metodológica
+    st.warning(
+        "Nota metodológica: para 2022 y 2023 se utiliza el pasivo "
+        "de corto plazo reportado en los estados financieros. "
+        "Para 2024 y 2025 se utiliza el pasivo total como aproximación, "
+        "ya que los estados financieros no presentan una separación "
+        "explícita entre pasivos corrientes y no corrientes. "
+        "Por esta razón, los indicadores de liquidez de estos dos años "
+        "son aproximados. El año 2020 se excluye de estos indicadores "
+        "por no contar con una clasificación verificable del pasivo."
+    )
     )
 
 # --------------------------------------------------
