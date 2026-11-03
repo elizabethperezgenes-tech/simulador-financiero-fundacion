@@ -333,6 +333,8 @@ with tab3:
 
 
 # --------------------------------------------------
+
+# --------------------------------------------------
 # 4. SIMULADOR DE ESCENARIOS
 # --------------------------------------------------
 
@@ -345,83 +347,134 @@ with tab4:
 
     if len(modelo_df) >= 3:
 
+        # Estimación econométrica
         X = sm.add_constant(modelo_df["ingresos"])
         y = modelo_df["costos"]
         modelo = sm.OLS(y, X).fit()
 
-        base = df.dropna(
-            subset=["ingresos", "costos"]
-        ).iloc[-1]
+        base = modelo_df.sort_values("anio").iloc[-1]
 
         st.write(
-            f"Periodo base: **{int(base['anio'])}**"
+            f"Periodo financiero base: **{int(base['anio'])}**"
         )
+
+        st.markdown(
+            "Modifica los supuestos para observar cómo "
+            "podrían evolucionar los resultados financieros."
+        )
+
+        # Selección de escenario
+        escenario = st.selectbox(
+            "Selecciona el escenario",
+            ["Personalizado", "Optimista", "Moderado", "Pesimista"]
+        )
+
+        supuestos = {
+            "Optimista": {
+                "crecimiento": 10,
+                "gastos": 2,
+                "cartera": 10
+            },
+            "Moderado": {
+                "crecimiento": 5,
+                "gastos": 3,
+                "cartera": 5
+            },
+            "Pesimista": {
+                "crecimiento": -5,
+                "gastos": 8,
+                "cartera": 0
+            },
+            "Personalizado": {
+                "crecimiento": 5,
+                "gastos": 3,
+                "cartera": 5
+            }
+        }
+
+        valores = supuestos[escenario]
 
         col1, col2 = st.columns(2)
 
         with col1:
             crecimiento = st.slider(
-                "Crecimiento anual de ingresos (%)",
-                -20, 50, 5
+                "Variación anual de ingresos (%)",
+                -20, 50,
+                valores["crecimiento"]
             )
 
             aumento_gastos = st.slider(
                 "Variación anual de gastos (%)",
-                -20, 50, 3
+                -20, 50,
+                valores["gastos"]
             )
 
         with col2:
+            mejora_cartera = st.slider(
+                "Reducción anual de cuentas por cobrar (%)",
+                0, 30,
+                valores["cartera"]
+            )
+
             periodos = st.selectbox(
-                "Horizonte de proyección",
-                [1, 2, 3, 4, 5]
+                "Horizonte de proyección (años)",
+                [1, 2, 3, 4, 5],
+                index=1
             )
 
-            escenario = st.selectbox(
-                "Escenario",
-                ["Personalizado", "Optimista", "Moderado", "Pesimista"]
-            )
+        st.divider()
 
-        if escenario == "Optimista":
-            crecimiento = 10
-            aumento_gastos = 2
-        elif escenario == "Moderado":
-            crecimiento = 5
-            aumento_gastos = 3
-        elif escenario == "Pesimista":
-            crecimiento = -5
-            aumento_gastos = 8
+        # Valores financieros de referencia
+        def obtener_valor(columna):
+            valor = base.get(columna, 0)
+            return float(valor) if pd.notna(valor) else 0.0
 
-        st.write(
-            f"Supuestos aplicados: ingresos {crecimiento}% y "
-            f"gastos {aumento_gastos}% anual."
-        )
-
-        # Gastos de referencia del último año disponible
-        admin = base["gastos_administrativos"]
-        operativo = base["gastos_operativos"]
-        financiero = base["gastos_financieros"]
-        otros = base["otros_gastos"]
+        ingresos_base = obtener_valor("ingresos")
+        efectivo_base = obtener_valor("efectivo")
+        cartera_base = obtener_valor("cuentas_por_cobrar")
+        inventario_base = obtener_valor("inventarios")
 
         gastos_base = sum(
-            0 if pd.isna(v) else v
-            for v in [admin, operativo, financiero, otros]
+            obtener_valor(columna)
+            for columna in [
+                "gastos_administrativos",
+                "gastos_operativos",
+                "gastos_financieros",
+                "otros_gastos"
+            ]
         )
 
+        # Proporciones históricas de cartera e inventarios
+        proporcion_cartera = (
+            cartera_base / ingresos_base
+            if ingresos_base > 0 else 0
+        )
+
+        proporcion_inventario = (
+            inventario_base / ingresos_base
+            if ingresos_base > 0 else 0
+        )
+
+        # Simulación
         resultados = []
+
+        efectivo_anterior = efectivo_base
+        cartera_anterior = cartera_base
+        inventario_anterior = inventario_base
 
         for anio in range(1, periodos + 1):
 
-            ingreso = base["ingresos"] * (
+            ingreso = ingresos_base * (
                 1 + crecimiento / 100
             ) ** anio
 
+            datos_prediccion = pd.DataFrame({
+                "const": [1],
+                "ingresos": [ingreso]
+            })
+
             costo = float(
-                modelo.predict(
-                    pd.DataFrame({
-                        "const": [1],
-                        "ingresos": [ingreso]
-                    })[["const", "ingresos"]]
-                ).iloc[0]
+                modelo.predict(datos_prediccion).iloc[0]
             )
 
             gasto = gastos_base * (
@@ -429,37 +482,80 @@ with tab4:
             ) ** anio
 
             excedente_bruto = ingreso - costo
-            excedente_estimado = excedente_bruto - gasto
+            excedente_neto = excedente_bruto - gasto
+
+            # Proyección de cuentas por cobrar
+            cartera = (
+                ingreso
+                * proporcion_cartera
+                * (1 - mejora_cartera / 100) ** anio
+            )
+
+            # Proyección de inventarios
+            inventario = (
+                ingreso * proporcion_inventario
+            )
+
+            # Aproximación del efectivo proyectado
+            variacion_cartera = (
+                cartera_anterior - cartera
+            )
+
+            variacion_inventario = (
+                inventario_anterior - inventario
+            )
+
+            efectivo = (
+                efectivo_anterior
+                + excedente_neto
+                + variacion_cartera
+                + variacion_inventario
+            )
 
             resultados.append({
                 "Año proyectado": int(base["anio"]) + anio,
                 "Ingresos": ingreso,
                 "Costos estimados": costo,
-                "Excedente bruto": excedente_bruto,
                 "Gastos estimados": gasto,
-                "Excedente estimado": excedente_estimado
+                "Excedente bruto": excedente_bruto,
+                "Excedente neto": excedente_neto,
+                "Cuentas por cobrar": cartera,
+                "Inventarios": inventario,
+                "Efectivo estimado": efectivo
             })
+
+            efectivo_anterior = efectivo
+            cartera_anterior = cartera
+            inventario_anterior = inventario
 
         proyeccion = pd.DataFrame(resultados)
 
+        # Resultados principales
         st.subheader("Resultados de la simulación")
 
-        c1, c2, c3 = st.columns(3)
+        ultimo = proyeccion.iloc[-1]
 
-        c1.metric(
+        col1, col2, col3 = st.columns(3)
+
+        col1.metric(
             "Ingresos proyectados",
-            f"$ {proyeccion.iloc[-1]['Ingresos']:,.2f} millones"
+            f"$ {ultimo['Ingresos']:,.2f} millones"
         )
 
-        c2.metric(
-            "Costos estimados",
-            f"$ {proyeccion.iloc[-1]['Costos estimados']:,.2f} millones"
+        col2.metric(
+            "Excedente neto",
+            f"$ {ultimo['Excedente neto']:,.2f} millones"
         )
 
-        c3.metric(
-            "Excedente estimado",
-            f"$ {proyeccion.iloc[-1]['Excedente estimado']:,.2f} millones"
+        col3.metric(
+            "Efectivo estimado",
+            f"$ {ultimo['Efectivo estimado']:,.2f} millones"
         )
+
+        st.divider()
+
+        # Tabla de resultados
+        st.subheader("Proyección financiera detallada")
 
         st.dataframe(
             proyeccion.style.format({
@@ -468,8 +564,12 @@ with tab4:
                     include="number"
                 ).columns
             }),
-            use_container_width=True
+            use_container_width=True,
+            hide_index=True
         )
+
+        # Gráfico de resultados
+        st.subheader("Evolución de ingresos, costos y excedentes")
 
         grafico = px.line(
             proyeccion,
@@ -477,32 +577,84 @@ with tab4:
             y=[
                 "Ingresos",
                 "Costos estimados",
-                "Excedente estimado"
+                "Excedente neto"
             ],
             markers=True,
-            title="Proyección financiera"
+            title="Proyección de resultados financieros"
         )
 
-        st.plotly_chart(grafico, use_container_width=True)
+        st.plotly_chart(
+            grafico,
+            use_container_width=True
+        )
 
+        # Gráfico de liquidez y cartera
+        st.subheader("Evolución del efectivo y las cuentas por cobrar")
+
+        grafico_liquidez = px.line(
+            proyeccion,
+            x="Año proyectado",
+            y=[
+                "Efectivo estimado",
+                "Cuentas por cobrar"
+            ],
+            markers=True,
+            title="Proyección de efectivo y cartera"
+        )
+
+        st.plotly_chart(
+            grafico_liquidez,
+            use_container_width=True
+        )
+
+        # Descarga
         st.download_button(
-            "Descargar proyección",
-            proyeccion.to_csv(index=False).encode("utf-8"),
+            "Descargar proyección financiera",
+            proyeccion.to_csv(
+                index=False
+            ).encode("utf-8"),
             "proyeccion_financiera.csv",
             "text/csv"
         )
 
-        st.caption(
-            "Las proyecciones son estimaciones exploratorias. "
-            "Los gastos se proyectan aplicando una tasa constante "
-            "al gasto agregado del último periodo disponible."
+        st.divider()
+
+        st.subheader("Interpretación y limitaciones")
+
+        st.write(
+            f"El escenario seleccionado es **{escenario}**, "
+            f"con una variación anual de ingresos del "
+            f"**{crecimiento}%**, una variación de gastos del "
+            f"**{aumento_gastos}%** y una reducción anual "
+            f"de la proporción de cartera del "
+            f"**{mejora_cartera}%**."
+        )
+
+        st.info(
+            "El efectivo proyectado es una aproximación que "
+            "incorpora el excedente estimado y las variaciones "
+            "de cartera e inventarios. No equivale a un estado "
+            "de flujo de efectivo proyectado ni incorpora todas "
+            "las entradas y salidas de caja."
+        )
+
+        st.warning(
+            "Las proyecciones son exploratorias. El modelo "
+            "econométrico cuenta con cinco observaciones anuales. "
+            "Además, no se dispone de una clasificación verificada "
+            "de pasivos corrientes para calcular el capital de "
+            "trabajo neto o proyectar una razón corriente confiable."
         )
 
     else:
-        st.error("No hay datos suficientes para simular escenarios.")
+        st.error(
+            "No hay suficientes datos para simular escenarios."
+        )
 
 st.divider()
 
 st.caption(
-    "Proyecto académico | Fundación Amigos de la Salud | Montería, Colombia"
+    "Proyecto académico | Fundación Amigos de la Salud | "
+    "Montería, Colombia"
 )
+
