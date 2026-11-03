@@ -640,7 +640,7 @@ with tab4:
         st.subheader("Proyección financiera detallada")
 
         st.dataframe(
-            proyeccion.style.format({
+            proyeccion.style.format({"Año proyectado": "{:.0f}",
                 columna: "{:,.2f}"
                 for columna in proyeccion.select_dtypes(
                     include="number"
