@@ -639,7 +639,7 @@ with tab4:
         # Tabla de resultados
         st.subheader("Proyección financiera detallada")
 
-                formatos = {
+        formatos = {
             columna: "{:,.2f}"
             for columna in proyeccion.select_dtypes(
                 include="number"
