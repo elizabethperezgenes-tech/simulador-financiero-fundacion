@@ -242,7 +242,6 @@ with tab2:
         "son aproximados. El año 2020 se excluye de estos indicadores "
         "por no contar con una clasificación verificable del pasivo."
     )
-    )
 
 # --------------------------------------------------
 
