@@ -281,16 +281,16 @@ with tab3:
             "Observaciones",
             len(modelo_df)
         )
-
+        
         col2.metric(
             "R²",
             f"{modelo.rsquared:.4f}"
         )
-         col3.metric(
+        
+        col3.metric(
             "Variación estimada de efectivo",
             f"$ {ultimo['Variación estimada de efectivo']:,.2f} millones"
         )
-
         st.divider()
 
         st.subheader("Coeficientes estimados")
