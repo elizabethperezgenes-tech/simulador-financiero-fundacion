@@ -230,8 +230,61 @@ with tab2:
         }, na_rep="No disponible"),
         use_container_width=True
     )
+    # 6. Alertas financieras automáticas
+    st.subheader("Alertas financieras")
 
-    # 6. Aclaración metodológica
+    datos_alertas = datos[
+        datos["anio"] >= 2022
+    ].sort_values("anio")
+
+    if not datos_alertas.empty:
+
+        ultimo = datos_alertas.iloc[-1]
+
+        st.write(
+            f"Análisis correspondiente al año {int(ultimo['anio'])}"
+        )
+
+        # Alerta de disponibilidad de efectivo
+        if ultimo["participacion_efectivo"] < 1:
+            st.warning(
+                "ALERTA DE EFECTIVO: la participación del efectivo "
+                "en los activos corrientes es inferior al 1 %. "
+                "Esto evidencia una disponibilidad inmediata "
+                "muy reducida."
+            )
+        else:
+            st.success(
+                "La participación del efectivo es superior al 1 %."
+            )
+
+        # Alerta de concentración de cartera
+        if ultimo["participacion_cartera"] >= 90:
+            st.warning(
+                "ALERTA DE CARTERA: más del 90 % de los activos "
+                "corrientes está concentrado en cuentas por cobrar. "
+                "Se recomienda fortalecer la gestión de recaudo."
+            )
+        else:
+            st.info(
+                "La concentración de cartera es inferior al 90 %."
+            )
+
+        # Alerta de razón corriente
+        if ultimo["razon_corriente"] < 1:
+            st.error(
+                "ALERTA DE LIQUIDEZ: la razón corriente es inferior "
+                "a 1. Los activos corrientes no cubren el pasivo "
+                "utilizado en este indicador."
+            )
+        else:
+            st.info(
+                "La razón corriente es superior a 1. "
+                "Los activos corrientes superan el pasivo utilizado "
+                "en el cálculo."
+            )
+
+    # 7. Aclaración metodológica
     st.warning(
         "Nota metodológica: para 2022 y 2023 se utiliza el pasivo "
         "de corto plazo reportado en los estados financieros. "
