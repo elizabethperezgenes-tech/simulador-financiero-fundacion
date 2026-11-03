@@ -286,10 +286,9 @@ with tab3:
             "R²",
             f"{modelo.rsquared:.4f}"
         )
-
-        col3.metric(
-            "R² ajustado",
-            f"{modelo.rsquared_adj:.4f}"
+         col3.metric(
+            "Variación estimada de efectivo",
+            f"$ {ultimo['Variación estimada de efectivo']:,.2f} millones"
         )
 
         st.divider()
@@ -631,11 +630,10 @@ with tab4:
             f"$ {ultimo['Excedente neto']:,.2f} millones"
         )
 
-       col3.metric(
-    "Variación estimada de efectivo",
-    f"$ {ultimo['Variación estimada de efectivo']:,.2f} millones"
-)
-
+        col3.metric(
+            "Variación estimada de efectivo",
+            f"$ {ultimo['Variación estimada de efectivo']:,.2f} millones"
+        )
         st.divider()
 
         # Tabla de resultados
