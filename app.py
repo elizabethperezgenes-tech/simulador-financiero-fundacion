@@ -40,39 +40,122 @@ tab1, tab2, tab3, tab4 = st.tabs([
 ])
 
 # --------------------------------------------------
+
+# --------------------------------------------------
 # 1. DIAGNÓSTICO HISTÓRICO
 # --------------------------------------------------
 
 with tab1:
+    datos_historicos = df.sort_values("anio").copy()
+
     st.header("Diagnóstico financiero histórico")
 
     st.write(
         "Información financiera expresada en millones de pesos colombianos."
     )
 
+    # Indicadores principales del último año disponible
+    ultimo = datos_historicos.iloc[-1]
+    anio = int(ultimo["anio"])
+
+    st.subheader(f"Resumen financiero del año {anio}")
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    col1.metric(
+        "Ingresos",
+        f"$ {ultimo['ingresos']:,.2f} millones"
+    )
+
+    col2.metric(
+        "Costos",
+        f"$ {ultimo['costos']:,.2f} millones"
+    )
+
+    col3.metric(
+        "Excedente neto",
+        f"$ {ultimo['excedente_neto']:,.2f} millones"
+    )
+
+    col4.metric(
+        "Activos totales",
+        f"$ {ultimo['activos_totales']:,.2f} millones"
+    )
+
+    # Tabla de información histórica
+    st.subheader("Estados financieros históricos")
+
     st.dataframe(
-        df,
+        datos_historicos,
         use_container_width=True,
         hide_index=True
     )
 
+    # Evolución de ingresos y costos
+    st.subheader("Evolución de ingresos y costos")
+
     fig = px.line(
-        df,
+        datos_historicos,
         x="anio",
         y=["ingresos", "costos"],
         markers=True,
-        title="Evolución de ingresos y costos"
+        title="Ingresos frente a costos"
     )
-    st.plotly_chart(fig, use_container_width=True)
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
+
+    # Evolución del excedente neto
+    st.subheader("Comportamiento del excedente neto")
 
     fig2 = px.bar(
-        df,
+        datos_historicos,
         x="anio",
         y="excedente_neto",
         title="Excedente neto histórico"
     )
-    st.plotly_chart(fig2, use_container_width=True)
 
+    st.plotly_chart(
+        fig2,
+        use_container_width=True
+    )
+
+    # Participación del efectivo y la cartera
+    st.subheader("Composición de los activos corrientes")
+
+    datos_historicos["participacion_efectivo"] = (
+        datos_historicos["efectivo"]
+        / datos_historicos["activos_corrientes"]
+    ) * 100
+
+    datos_historicos["participacion_cartera"] = (
+        datos_historicos["cuentas_por_cobrar"]
+        / datos_historicos["activos_corrientes"]
+    ) * 100
+
+    fig3 = px.line(
+        datos_historicos,
+        x="anio",
+        y=["participacion_efectivo", "participacion_cartera"],
+        markers=True,
+        title="Participación del efectivo y las cuentas por cobrar",
+        labels={
+            "value": "Participación (%)",
+            "anio": "Año",
+            "variable": "Indicador",
+            "participacion_efectivo": "Efectivo",
+            "participacion_cartera": "Cuentas por cobrar"
+        }
+    )
+
+    st.plotly_chart(
+        fig3,
+        use_container_width=True
+    )
+
+    # Descarga de la base histórica
     st.download_button(
         "Descargar base histórica",
         df.to_csv(index=False).encode("utf-8"),
