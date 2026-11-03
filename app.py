@@ -163,6 +163,73 @@ with tab1:
         "text/csv"
     )
 
+    # Análisis automático de la evolución financiera
+    st.subheader("Análisis automático de la evolución financiera")
+
+    primer_anio = datos_historicos.iloc[0]
+    ultimo_anio = datos_historicos.iloc[-1]
+
+    variacion_ingresos = (
+        (ultimo_anio["ingresos"] / primer_anio["ingresos"]) - 1
+    ) * 100
+
+    variacion_costos = (
+        (ultimo_anio["costos"] / primer_anio["costos"]) - 1
+    ) * 100
+
+    variacion_efectivo = (
+        (ultimo_anio["efectivo"] / primer_anio["efectivo"]) - 1
+    ) * 100
+
+    variacion_cartera = (
+        (ultimo_anio["cuentas_por_cobrar"] /
+         primer_anio["cuentas_por_cobrar"]) - 1
+    ) * 100
+
+    st.write(
+        f"Entre {int(primer_anio['anio'])} y "
+        f"{int(ultimo_anio['anio'])}, los ingresos "
+        f"variaron un {variacion_ingresos:.2f} %."
+    )
+
+    st.write(
+        f"En el mismo periodo, los costos variaron "
+        f"un {variacion_costos:.2f} %."
+    )
+
+    st.write(
+        f"El efectivo presentó una variación del "
+        f"{variacion_efectivo:.2f} %."
+    )
+
+    st.write(
+        f"Las cuentas por cobrar presentaron una variación "
+        f"del {variacion_cartera:.2f} %."
+    )
+
+    if variacion_costos > variacion_ingresos:
+        st.warning(
+            "Los costos crecieron más que los ingresos. "
+            "Se recomienda revisar la estructura de costos."
+        )
+    else:
+        st.success(
+            "Los ingresos crecieron a una tasa igual o superior "
+            "a la de los costos."
+        )
+
+    if variacion_efectivo < 0:
+        st.warning(
+            "El efectivo disminuyó durante el periodo analizado. "
+            "Es importante fortalecer la disponibilidad de recursos."
+        )
+
+    if variacion_cartera > 0:
+        st.info(
+            "Las cuentas por cobrar aumentaron. "
+            "Conviene hacer seguimiento a la recuperación de cartera."
+        )
+
 # --------------------------------------------------
 # --------------------------------------------------
 # INDICADORES FINANCIEROS
