@@ -658,6 +658,34 @@ with tab3:
         estadísticas sólidas con una muestra tan pequeña.
         """)
 
+        # Interpretación económica del modelo
+        st.subheader("Interpretación económica del modelo")
+
+        st.write(
+            f"El coeficiente de ingresos (β₁) es "
+            f"{modelo.params.iloc[1]:.4f}. Esto indica que, "
+            "por cada millón de pesos adicional en ingresos, "
+            "el modelo estima un incremento promedio de "
+            f"{modelo.params.iloc[1]:.4f} millones de pesos "
+            "en los costos."
+        )
+
+        st.write(
+            f"El coeficiente de determinación R² es "
+            f"{modelo.rsquared:.4f}, lo que indica que "
+            f"aproximadamente el {modelo.rsquared * 100:.2f} % "
+            "de la variación observada en los costos se explica "
+            "por la relación lineal con los ingresos dentro de "
+            "esta muestra."
+        )
+
+        st.info(
+            "El modelo identifica una asociación entre ingresos "
+            "y costos, pero no demuestra una relación de causalidad. "
+            "Sus resultados deben considerarse exploratorios debido "
+            "al reducido número de observaciones."
+        )
+
     else:
         st.error(
             "No existen suficientes observaciones para estimar el modelo."
